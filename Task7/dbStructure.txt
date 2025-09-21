@@ -1,0 +1,39 @@
+CREATE TABLE users (
+    user_id SERIAL PRIMARY KEY,         
+    email VARCHAR(100) NOT NULL UNIQUE, 
+    password_hash TEXT NOT NULL,       
+    role VARCHAR(20) DEFAULT 'user',    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE devices (
+    device_id SERIAL PRIMARY KEY,         
+    device_name VARCHAR(100) NOT NULL,    
+    device_type VARCHAR(50) NOT NULL,     
+    status VARCHAR(20) DEFAULT 'active',   
+    owner_id INT REFERENCES users(user_id) ON DELETE SET NULL, 
+    registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+-- table to record user deletion requests
+CREATE TABLE user_deletion_requests (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  requested_by uuid,  
+  requested_at timestamptz DEFAULT now(),
+  verified boolean DEFAULT false,
+  verified_at timestamptz,
+  status text DEFAULT 'PENDING', -- PENDING, IN_PROGRESS, COMPLETED, FAILED, CANCELLED
+  scheduled_hard_delete_at timestamptz
+);
+
+-- audit log of deletion jobs
+CREATE TABLE deletion_audit (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  request_id uuid REFERENCES user_deletion_requests(id),
+  started_at timestamptz DEFAULT now(),
+  completed_at timestamptz,
+  status text, -- SUCCESS, FAILED, PARTIAL
+  rows_deleted jsonb
+);
